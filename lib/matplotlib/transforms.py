@@ -233,7 +233,8 @@ class BboxBase(TransformNode):
                 _api.warn_external("Singular Bbox.")
 
     def frozen(self):
-        return Bbox(self.get_points().copy())
+        cls = self.__class__
+        return cls(self.get_points().copy())
     frozen.__doc__ = TransformNode.__doc__
 
     def __array__(self, *args, **kwargs):
@@ -467,7 +468,8 @@ class BboxBase(TransformNode):
         pts = self.get_points()
         ll, ul, lr = transform.transform(np.array(
             [pts[0], [pts[0, 0], pts[1, 1]], [pts[1, 0], pts[0, 1]]]))
-        return Bbox([ll, [lr[0], ul[1]]])
+        cls = self.__class__
+        return cls([ll, [lr[0], ul[1]]])
 
     coefs = {'C':  (0.5, 0.5),
              'SW': (0, 0),
@@ -505,7 +507,8 @@ class BboxBase(TransformNode):
         l, b, w, h = container.bounds
         L, B, W, H = self.bounds
         cx, cy = self.coefs[c] if isinstance(c, str) else c
-        return Bbox(self._points +
+        cls = self.__class__
+        return cls(self._points +
                     [(l + cx * (w - W)) - L,
                      (b + cy * (h - H)) - B])
 
@@ -517,7 +520,8 @@ class BboxBase(TransformNode):
         *mx* and *my* will be less than 1, but this is not enforced.
         """
         w, h = self.size
-        return Bbox([self._points[0],
+        cls = self.__class__
+        return cls([self._points[0],
                      self._points[0] + [mx * w, my * h]])
 
     def shrunk_to_aspect(self, box_aspect, container=None, fig_aspect=1.0):
@@ -541,7 +545,8 @@ class BboxBase(TransformNode):
         else:
             W = h * fig_aspect / box_aspect
             H = h
-        return Bbox([self._points[0],
+        cls = self.__class__
+        return cls([self._points[0],
                      self._points[0] + (W, H)])
 
     def splitx(self, *args):
@@ -552,7 +557,8 @@ class BboxBase(TransformNode):
         xf = [0, *args, 1]
         x0, y0, x1, y1 = self.extents
         w = x1 - x0
-        return [Bbox([[x0 + xf0 * w, y0], [x0 + xf1 * w, y1]])
+        cls = self.__class__
+        return [cls([[x0 + xf0 * w, y0], [x0 + xf1 * w, y1]])
                 for xf0, xf1 in zip(xf[:-1], xf[1:])]
 
     def splity(self, *args):
@@ -563,7 +569,8 @@ class BboxBase(TransformNode):
         yf = [0, *args, 1]
         x0, y0, x1, y1 = self.extents
         h = y1 - y0
-        return [Bbox([[x0, y0 + yf0 * h], [x1, y0 + yf1 * h]])
+        cls = self.__class__
+        return [cls([[x0, y0 + yf0 * h], [x1, y0 + yf1 * h]])
                 for yf0, yf1 in zip(yf[:-1], yf[1:])]
 
     def count_contains(self, vertices):
@@ -603,7 +610,8 @@ class BboxBase(TransformNode):
         deltaw = (sw * width - width) / 2.0
         deltah = (sh * height - height) / 2.0
         a = np.array([[-deltaw, -deltah], [deltaw, deltah]])
-        return Bbox(self._points + a)
+        cls = self.__class__
+        return cls(self._points + a)
 
     @_api.rename_parameter("3.8", "p", "w_pad")
     def padded(self, w_pad, h_pad=None):
@@ -621,11 +629,13 @@ class BboxBase(TransformNode):
         points = self.get_points()
         if h_pad is None:
             h_pad = w_pad
-        return Bbox(points + [[-w_pad, -h_pad], [w_pad, h_pad]])
+        cls = self.__class__
+        return cls(points + [[-w_pad, -h_pad], [w_pad, h_pad]])
 
     def translated(self, tx, ty):
         """Construct a `Bbox` by translating this one by *tx* and *ty*."""
-        return Bbox(self._points + (tx, ty))
+        cls = self.__class__
+        return cls(self._points + (tx, ty))
 
     def corners(self):
         """
@@ -648,8 +658,8 @@ class BboxBase(TransformNode):
         bbox.update_from_data_xy(corners_rotated, ignore=True)
         return bbox
 
-    @staticmethod
-    def union(bboxes):
+    @classmethod
+    def union(cls, bboxes):
         """Return a `Bbox` that contains all of the given *bboxes*."""
         if not len(bboxes):
             raise ValueError("'bboxes' cannot be empty")
@@ -657,10 +667,10 @@ class BboxBase(TransformNode):
         x1 = np.max([bbox.xmax for bbox in bboxes])
         y0 = np.min([bbox.ymin for bbox in bboxes])
         y1 = np.max([bbox.ymax for bbox in bboxes])
-        return Bbox([[x0, y0], [x1, y1]])
+        return cls([[x0, y0], [x1, y1]])
 
-    @staticmethod
-    def intersection(bbox1, bbox2):
+    @classmethod
+    def intersection(cls, bbox1, bbox2):
         """
         Return the intersection of *bbox1* and *bbox2* if they intersect, or
         None if they don't.
@@ -669,7 +679,7 @@ class BboxBase(TransformNode):
         x1 = np.minimum(bbox1.xmax, bbox2.xmax)
         y0 = np.maximum(bbox1.ymin, bbox2.ymin)
         y1 = np.minimum(bbox1.ymax, bbox2.ymax)
-        return Bbox([[x0, y0], [x1, y1]]) if x0 <= x1 and y0 <= y1 else None
+        return cls([[x0, y0], [x1, y1]]) if x0 <= x1 and y0 <= y1 else None
 
 
 _default_minpos = np.array([np.inf, np.inf])
@@ -792,27 +802,27 @@ class Bbox(BboxBase):
         frozen_bbox._minpos = self.minpos.copy()
         return frozen_bbox
 
-    @staticmethod
-    def unit():
+    @classmethod
+    def unit(cls):
         """Create a new unit `Bbox` from (0, 0) to (1, 1)."""
-        return Bbox([[0, 0], [1, 1]])
+        return cls([[0, 0], [1, 1]])
 
-    @staticmethod
-    def null():
+    @classmethod
+    def null(cls):
         """Create a new null `Bbox` from (inf, inf) to (-inf, -inf)."""
-        return Bbox([[np.inf, np.inf], [-np.inf, -np.inf]])
+        return cls([[np.inf, np.inf], [-np.inf, -np.inf]])
 
-    @staticmethod
-    def from_bounds(x0, y0, width, height):
+    @classmethod
+    def from_bounds(cls, x0, y0, width, height):
         """
         Create a new `Bbox` from *x0*, *y0*, *width* and *height*.
 
         *width* and *height* may be negative.
         """
-        return Bbox.from_extents(x0, y0, x0 + width, y0 + height)
+        return cls.from_extents(x0, y0, x0 + width, y0 + height)
 
-    @staticmethod
-    def from_extents(*args, minpos=None):
+    @classmethod
+    def from_extents(cls, *args, minpos=None):
         """
         Create a new Bbox from *left*, *bottom*, *right* and *top*.
 
@@ -827,7 +837,7 @@ class Bbox(BboxBase):
             set. This is useful when dealing with logarithmic scales and other
             scales where negative bounds result in floating point errors.
         """
-        bbox = Bbox(np.reshape(args, (2, 2)))
+        bbox = cls(np.reshape(args, (2, 2)))
         if minpos is not None:
             bbox._minpos[:] = minpos
         return bbox
@@ -1574,7 +1584,8 @@ class Transform(TransformNode):
         For smarter transforms including caching (a common requirement in
         Matplotlib), see `TransformedBbox`.
         """
-        return Bbox(self.transform(bbox.get_points()))
+        cls = self.__class__
+        return cls(self.transform(bbox.get_points()))
 
     def get_affine(self):
         """Get the affine part of this transform."""
@@ -1922,8 +1933,8 @@ class Affine2D(Affine2DBase):
                 if self._mtx[0, 0] != self._mtx[1, 1]
                 else f"Affine2D().scale({self._mtx[0, 0]})")
 
-    @staticmethod
-    def from_values(a, b, c, d, e, f):
+    @classmethod
+    def from_values(cls, a, b, c, d, e, f):
         """
         Create a new Affine2D instance from the given values::
 
@@ -1933,7 +1944,7 @@ class Affine2D(Affine2DBase):
 
         .
         """
-        return Affine2D(
+        return cls(
             np.array([a, c, e, b, d, f, 0.0, 0.0, 1.0], float).reshape((3, 3)))
 
     def get_matrix(self):
