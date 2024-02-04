@@ -118,4 +118,5 @@ LICENSE/LICENSE_QHULL
 # Dan's #
 #########
 .env
-venv
+venv/
+local/
